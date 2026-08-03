@@ -38,17 +38,6 @@ def _parse_elf(path: str):
 # ---------------------------------------------------------------------------
 
 class FunctionSearcher:
-    """Locate which binary defines a function, by exact name or substring.
-
-    Correct across ELF kinds:
-
-    * relocatable objects (kernel modules) are matched on section-relative
-      symbols, so ``.text+0x..`` offsets are reported instead of fake VA's;
-    * GCC clone suffixes (``foo.isra.0``) are ignored for exact matches;
-    * version suffixes (``foo@GLIBC_2.2``) are ignored;
-    * ARM mapping symbols / ``.L`` labels are never reported.
-    """
-
     def __init__(
         self,
         root: str,
@@ -115,8 +104,6 @@ class FunctionSearcher:
 # ---------------------------------------------------------------------------
 
 class ByteSearcher:
-    """Search for a raw byte pattern (hex string or ``0x``/whitespace form)."""
-
     def __init__(self, root: str, hex_bytes: str, jobs: int = 10, per_file: int = 10):
         self.root = os.path.abspath(root)
         self.hex_input = hex_bytes
@@ -189,7 +176,6 @@ _KS_ARCHES = {
 
 
 def assemble_mnemonics(spec: str) -> bytes:
-    """``arch:instruction;instruction`` -> assembled bytes (keystone)."""
     try:
         arch, instructions = (part.strip() for part in spec.split(":", 1))
     except ValueError as exc:
@@ -239,14 +225,6 @@ class MnemonicSearcher(ByteSearcher):
 # ---------------------------------------------------------------------------
 
 class NeededLibSearcher:
-    """Recursively resolve the shared libraries a binary depends on.
-
-    Resolution is by basename against the ELF files present in the firmware
-    tree (with a tolerant prefix fallback, e.g. ``libm.so.6`` may resolve to
-    ``libm.so.6.1``), so results distinguish *available in the tree* from
-    *missing* (would need to be provided by the root filesystem / kernel).
-    """
-
     def __init__(self, root: str, lib_name: str, jobs: int = 10):
         self.root = os.path.abspath(root)
         self.lib_name = lib_name
