@@ -1,10 +1,3 @@
-"""Report rendering: aligned tables, markdown and JSON.
-
-All search/analysis operations produce plain ``{column: value}`` rows so the
-same data can be dumped as a table for the terminal, as markdown for docs, or
-as JSON for machine consumption.
-"""
-
 from __future__ import annotations
 
 import json
@@ -119,16 +112,7 @@ def to_json(obj: object) -> str:
     return json.dumps(obj, indent=2, default=_default)
 
 
-def render_result(
-    result,
-    fmt: str = "table",
-    max_rows: Optional[int] = None,
-) -> str:
-    """Render a :class:`~swissfirm.searchers.SearchResult`-like object.
-
-    ``result`` must expose ``title``, ``columns``, ``rows`` and optional
-    ``summary`` attributes.
-    """
+def render_result(result, fmt: str = "table", max_rows: Optional[int] = None) -> str:
     title = getattr(result, "title", "")
     columns = getattr(result, "columns", [])
     rows = getattr(result, "rows", [])
