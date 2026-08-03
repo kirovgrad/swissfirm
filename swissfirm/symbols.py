@@ -1,17 +1,3 @@
-"""Symbol display/analysis helpers shared by searchers and analyzers.
-
-Kernel modules (``.ko``) are ``ET_REL`` objects, which makes their *symbol
-printing* trickier than normal executables:
-
-* symbol ``value`` is an *offset inside a section*, not a virtual address;
-* ARM/AArch64 modules carry mapping symbols (``$a``, ``$t``, ``$x``...);
-* GCC emits ``name.isra.0``, ``name.constprop.1``, ``name.part.0`` variants;
-* local ``.L*`` labels and anonymous symbols are pure noise for a search.
-
-The helpers below normalise all of that so callers get a clean, consistent
-view regardless of ELF type.
-"""
-
 from __future__ import annotations
 
 import os
@@ -126,12 +112,10 @@ def _enum(name: str, table: dict) -> int:
 
 
 def is_mapping_symbol(name: str) -> bool:
-    """ARM/AArch64 mapping symbols like ``$a`` / ``$t`` / ``$x`` / ``$d.any``."""
     return name.startswith(_MAPPING_PREFIX)
 
 
 def is_noise_symbol(name: str) -> bool:
-    """Symbols that never represent a real function for search purposes."""
     if not name:
         return True
     if name.startswith("$"):
@@ -146,7 +130,6 @@ def is_noise_symbol(name: str) -> bool:
 
 
 def gcc_base(name: str) -> str:
-    """Strip GCC clone suffixes: ``foo.isra.3`` -> ``foo``, ``foo.0`` -> ``foo``."""
     parts = name.split(".")
     while len(parts) > 1:
         tail = parts[-1]
@@ -158,7 +141,6 @@ def gcc_base(name: str) -> str:
 
 
 def versionless(name: str) -> str:
-    """Strip ELF version suffixes: ``foo@GLIBC_2.2.5`` / ``foo@@GLIBC_2.2.5``."""
     if "@" in name:
         return name.split("@", 1)[0]
     return name
@@ -203,14 +185,12 @@ def convert_symbols(all_sections: list, sec) -> List[Symbol]:
 
 
 def _parse_elf(path: str):
-    """Parse an ELF file using pyelftools. Raises exceptions on failure."""
     if not HAS_PYELFTOOLS:
         raise ImportError("pyelftools is required but not installed")
     return ELFFile(open(path, "rb"))
 
 
 def parse_elf(path: str):
-    """Parse *path* and return a pyelftools ELFFile object."""
     elffile = _parse_elf(path)
     elffile.name = path
     return elffile
@@ -229,7 +209,6 @@ def is_executable(elffile: ELFFile) -> bool:
 
 
 def defined_functions(elffile: ELFFile) -> List[Symbol]:
-    """All defined text/function symbols, sorted by (section, value)."""
     all_sections = list(elffile.iter_sections())
     symtab = elffile.get_section_by_name(".symtab")
     dynsym = elffile.get_section_by_name(".dynsym")
@@ -254,7 +233,6 @@ def defined_functions(elffile: ELFFile) -> List[Symbol]:
 
 
 def undefined_symbols(elffile: ELFFile) -> List[Symbol]:
-    """Imported/undefined symbols - what this binary links against."""
     all_sections = list(elffile.iter_sections())
     dynsym = elffile.get_section_by_name(".dynsym")
     if dynsym is None:
@@ -264,12 +242,10 @@ def undefined_symbols(elffile: ELFFile) -> List[Symbol]:
 
 
 def iter_function_symbols(elffile: ELFFile) -> List[Symbol]:
-    """Defined function symbols, minus mapping / noise / empty names."""
     return [s for s in defined_functions(elffile) if not is_noise_symbol(s.name)]
 
 
 def get_section(elffile: ELFFile, name: str):
-    """Get section by name, return None if not found."""
     return elffile.get_section_by_name(name)
 
 
@@ -278,12 +254,6 @@ def has_section(elffile: ELFFile, name: str) -> bool:
 
 
 def human_address(elffile: ELFFile, sym: Symbol) -> str:
-    """Render a symbol's location sensibly for the ELF type.
-
-    For relocatable objects (kernel modules, ``*.o``) an absolute address is
-    meaningless - the value is an offset inside a section - so we show
-    ``section+0x..``.  For linked images we show the virtual address.
-    """
     if is_relocatable(elffile):
         return f"{sym.section}+0x{sym.value:x}"
     return f"0x{sym.value:x}"
@@ -336,7 +306,6 @@ def endianness(elffile: ELFFile) -> str:
 
 
 def is_stripped(elffile: ELFFile) -> bool:
-    """No .symtab -> symbols were stripped (dynsym may remain)."""
     return not has_section(elffile, ".symtab")
 
 
@@ -355,7 +324,6 @@ def has_gnu_relro(elffile: ELFFile) -> bool:
 
 
 def has_bind_now(elffile: ELFFile) -> bool:
-    """Check if DT_BIND_NOW is set, forcing immediate symbol resolution."""
     dynamic = elffile.get_section_by_name(".dynamic")
     if dynamic is not None:
         for tag in dynamic.iter_tags():
@@ -368,7 +336,6 @@ def has_bind_now(elffile: ELFFile) -> bool:
 
 
 def has_exec_writable_load(elffile: ELFFile) -> bool:
-    """W^X violation: any PT_LOAD both writable and executable."""
     for seg in elffile.iter_segments():
         if seg["p_type"] == "PT_LOAD":
             flags = seg.header.get("p_flags", 0)
@@ -378,12 +345,10 @@ def has_exec_writable_load(elffile: ELFFile) -> bool:
 
 
 def is_kernel_module(elffile: ELFFile) -> bool:
-    """True for a kernel module (relocatable object carrying .modinfo)."""
     return is_relocatable(elffile) and has_section(elffile, ".modinfo")
 
 
 def all_symbols(elffile: ELFFile) -> List[Symbol]:
-    """symtab symbols, then dynsym (deduplicated by name)."""
     all_sections = list(elffile.iter_sections())
     out = []
     seen = set()
@@ -405,7 +370,6 @@ def all_symbols(elffile: ELFFile) -> List[Symbol]:
 
 
 def get_needed(elffile: ELFFile) -> List[str]:
-    """Get DT_NEEDED entries from .dynamic section."""
     needed = []
     dynamic = elffile.get_section_by_name(".dynamic")
     if dynamic is not None:
@@ -419,7 +383,6 @@ _VERSION_RE = re.compile(r"Linux version ([0-9]+\.[0-9]+(?:\.[0-9]+)?)")
 
 
 def find_kernel_version(strings: List[str]) -> List[str]:
-    """Extract ``Linux version x.y.z`` strings (e.g. from /proc/version)."""
     versions = []
     for text in strings:
         m = _VERSION_RE.search(text)
@@ -429,7 +392,6 @@ def find_kernel_version(strings: List[str]) -> List[str]:
 
 
 def _iter_files(root: str):
-    """Yield absolute paths of every regular file under *root* (no symlinks)."""
     for dirpath, _dirnames, filenames in os.walk(root):
         for name in filenames:
             path = os.path.join(dirpath, name)
@@ -438,8 +400,6 @@ def _iter_files(root: str):
 
 
 def importable_symbols(elffile: ELFFile) -> List[Symbol]:
-    """Symbols available for cross-binary lookup: defined functions and, for
-    shared/executable images, the exported dynamic API."""
     out = list(iter_function_symbols(elffile))
     if not is_relocatable(elffile):
         seen = {s.name for s in out}
