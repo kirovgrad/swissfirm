@@ -19,7 +19,6 @@ from .util import human_size, parallel_map, relpath, walk_elf_files
 
 _PRINTABLE = bytes(range(0x20, 0x7F))
 
-
 # ---------------------------------------------------------------------------
 # 1. strings extraction + classification
 # ---------------------------------------------------------------------------
@@ -47,7 +46,6 @@ def _categorize_string(text: str) -> Optional[str]:
             return name
     return None
 
-
 def _extract_ascii(data: bytes, min_len: int) -> List[bytes]:
     out = []
     run = bytearray()
@@ -61,7 +59,6 @@ def _extract_ascii(data: bytes, min_len: int) -> List[bytes]:
     if len(run) >= min_len:
         out.append(bytes(run))
     return out
-
 
 def _extract_utf16le(data: bytes, min_len: int) -> List[bytes]:
     out = []
@@ -81,10 +78,7 @@ def _extract_utf16le(data: bytes, min_len: int) -> List[bytes]:
         out.append(bytes(run))
     return out
 
-
 class StringsAnalyzer:
-    """Extract printable strings from binaries, flagging interesting ones."""
-
     def __init__(
         self,
         root: str,
@@ -159,14 +153,11 @@ class StringsAnalyzer:
             summary=summary,
         )
 
-
 # ---------------------------------------------------------------------------
 # 2. security hardening audit
 # ---------------------------------------------------------------------------
 
 class SecurityAuditAnalyzer:
-    """Per-binary hardening checks: NX, PIE, RELRO, canary, fortify, W^X."""
-
     def __init__(self, root: str, jobs: int = 10, sort: str = "score"):
         self.root = os.path.abspath(root)
         self.jobs = jobs
@@ -225,7 +216,6 @@ class SecurityAuditAnalyzer:
             summary=f"{safe}/{len(rows)} binaries with >=4 hardening features",
         )
 
-
 # ---------------------------------------------------------------------------
 # 3. dangerous function usage (imports / undefined references)
 # ---------------------------------------------------------------------------
@@ -251,7 +241,6 @@ _DANGEROUS_FUNCS: Dict[str, List[str]] = {
     "format-string": ["printf", "fprintf", "sprintf", "snprintf", "vprintf"],
 }
 
-
 def _classify_dangerous(name: str) -> Optional[str]:
     base = _symbols.gcc_base(_symbols.versionless(name))
     low = base.lower()
@@ -262,10 +251,7 @@ def _classify_dangerous(name: str) -> Optional[str]:
                 return category
     return None
 
-
 class DangerousImportsAnalyzer:
-    """Flag binaries importing/using functions that often precede bugs."""
-
     def __init__(self, root: str, jobs: int = 10):
         self.root = os.path.abspath(root)
         self.jobs = jobs
@@ -313,7 +299,6 @@ class DangerousImportsAnalyzer:
             summary=summary,
         )
 
-
 # ---------------------------------------------------------------------------
 # 4. crypto-constant signatures
 # ---------------------------------------------------------------------------
@@ -339,20 +324,17 @@ _AES_SBOX = bytes(
     ]
 )
 
-
 def _le_words(*words: int) -> bytes:
     out = bytearray()
     for w in words:
         out += w.to_bytes(4, "little")
     return bytes(out)
 
-
 def _be_words(*words: int) -> bytes:
     out = bytearray()
     for w in words:
         out += w.to_bytes(4, "big")
     return bytes(out)
-
 
 _CRYPTO_SIGNATURES: Dict[str, bytes] = {
     "AES forward S-box": _AES_SBOX,
@@ -366,10 +348,7 @@ _CRYPTO_SIGNATURES: Dict[str, bytes] = {
     "Blowfish P-array (BE)": _be_words(0x243F6A88, 0x85A308D3, 0x13198A2E, 0x03707344),
 }
 
-
 class CryptoConstantsAnalyzer:
-    """Scan binaries for embedded crypto constants (key schedules, tables)."""
-
     def __init__(self, root: str, jobs: int = 10, elf_only: bool = False):
         self.root = os.path.abspath(root)
         self.jobs = jobs
@@ -429,7 +408,6 @@ _FS_MAGICS = [
     ("tar", b"ustar"),
 ]
 
-
 def _magic_name(path: str) -> Optional[str]:
     try:
         with open(path, "rb") as fh:
@@ -440,7 +418,6 @@ def _magic_name(path: str) -> Optional[str]:
         if head.startswith(magic):
             return name
     return None
-
 
 def _is_text(path: str) -> bool:
     try:
@@ -458,10 +435,7 @@ def _is_text(path: str) -> bool:
     printable = sum(1 for ch in text if ch in string.printable)
     return printable / max(1, len(text)) > 0.9
 
-
 class InventoryAnalyzer:
-    """Map the firmware: ELF inventory, file-type census, kernel version."""
-
     def __init__(self, root: str, jobs: int = 10):
         self.root = os.path.abspath(root)
         self.jobs = jobs
@@ -502,10 +476,7 @@ class InventoryAnalyzer:
             summary=summary,
         )
 
-
 class FirmwareSummaryAnalyzer:
-    """Filesystem-level summary: file census, kernel version, plaintext configs."""
-
     def __init__(self, root: str, jobs: int = 10, scan_small_files: bool = True):
         self.root = os.path.abspath(root)
         self.jobs = jobs
@@ -574,8 +545,6 @@ class FirmwareSummaryAnalyzer:
 # ---------------------------------------------------------------------------
 
 class KernelModulesAnalyzer:
-    """Inventory kernel modules: decompression, modinfo, function symbols."""
-
     def __init__(self, root: str, jobs: int = 10):
         self.root = os.path.abspath(root)
         self.jobs = jobs
@@ -622,10 +591,7 @@ class KernelModulesAnalyzer:
                 summary=summary,
             )
 
-
 class KernelSymbolsDumper:
-    """Dump the (tricky) symbol table of a single kernel module correctly."""
-
     def __init__(self, root: str, module: str):
         self.root = os.path.abspath(root)
         self.module = module
