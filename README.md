@@ -24,7 +24,7 @@ pip install pyelftools keystone-engine
 ## Usage
 
 ```bash
-swissfirm <firmware_dir> [options] -fo <function>     # Find function origin (exact)
+swissfirm <firmware_dir> [options] -fo <function>    # Find function origin (exact)
 swissfirm <firmware_dir> [options] -fs <substring>   # Find function by substring
 swissfirm <firmware_dir> [options] -fb <hex>         # Search byte pattern
 swissfirm <firmware_dir> [options] -fm <arch:insn>   # Search by assembly
