@@ -1,12 +1,3 @@
-"""Kernel module (``.ko``) inspection.
-
-Kernel modules are relocatable ELF objects (``ET_REL``) with a ``.modinfo``
-section holding ``key=value`` metadata (``vermagic``, ``depends``, ...).
-They are frequently shipped compressed (``.ko.gz`` / ``.ko.xz`` / ``.ko.zst``
-/ ``.ko.bz2`` / ``.ko.lz4``), which this module transparently handles by
-decompressing into a temporary directory before parsing.
-"""
-
 from __future__ import annotations
 
 import bz2
@@ -29,25 +20,17 @@ KO_EXTENSIONS = (
     ".ko.lz4",
 )
 
-
 def is_module_path(path: str) -> bool:
-    """True if the file name looks like a (possibly compressed) kernel module."""
     return os.path.basename(path).endswith(KO_EXTENSIONS)
 
-
 def iter_kernel_modules(root: str) -> List[str]:
-    """All module-looking files under *root*, plus genuine ``.ko`` relocatables
-    with a ``.modinfo`` section regardless of their file name."""
     found = []
     for path in _symbols._iter_files(root):
         if is_module_path(path):
             found.append(path)
     return found
 
-
 class ModuleWorkspace:
-    """Manages a temporary directory for decompressed modules."""
-
     def __init__(self) -> None:
         self._tmp = tempfile.TemporaryDirectory(prefix="swissfirm-ko-")
         self._index: Dict[str, str] = {}
@@ -63,7 +46,6 @@ class ModuleWorkspace:
         return self._tmp.name
 
     def resolve(self, path: str) -> str:
-        """Return a parseable ELF path for *path*, decompressing if needed."""
         if path in self._index:
             return self._index[path]
         result = _maybe_decompress(path, self.tmpdir)
@@ -75,9 +57,7 @@ class ModuleWorkspace:
     def cleanup(self) -> None:
         self._tmp.cleanup()
 
-
 def _maybe_decompress(path: str, tmpdir: str) -> Optional[str]:
-    """Decompress ``.ko.<comp>`` into *tmpdir* and return the new path."""
     if not is_module_path(path) or path.endswith(".ko"):
         return None
     base = os.path.basename(path)
@@ -120,13 +100,7 @@ def _maybe_decompress(path: str, tmpdir: str) -> Optional[str]:
         out.write(raw)
     return out_path
 
-
 def read_modinfo(path: str) -> Dict[str, str]:
-    """Parse the ``.modinfo`` section of a kernel module into ``{key: value}``.
-
-    Takes the (already decompressed) ELF *path*.  Returns an empty dict when
-    there is no modinfo section.
-    """
     try:
         elffile = _symbols.parse_elf(path)
     except Exception:
@@ -149,9 +123,7 @@ def read_modinfo(path: str) -> Dict[str, str]:
             )
     return result
 
-
 def modinfo_table(info: Dict[str, str]) -> List[Tuple[str, str]]:
-    """Flatten modinfo into display rows, highlighting the interesting keys."""
     order = [
         "name",
         "vermagic",
@@ -176,9 +148,7 @@ def modinfo_table(info: Dict[str, str]) -> List[Tuple[str, str]]:
             rows.append((key, value))
     return rows
 
-
 def format_module_functions(path: str) -> List[Dict[str, object]]:
-    """Function symbols of a kernel module with section-relative addressing."""
     elffile = _symbols.parse_elf(path)
     rows = []
     for sym in _symbols.iter_function_symbols(elffile):
@@ -196,9 +166,7 @@ def format_module_functions(path: str) -> List[Dict[str, object]]:
         )
     return rows
 
-
 def is_genuine_module(path: str, elffile: Optional[object] = None) -> bool:
-    """True when *path* parses as an ELF relocatable with a .modinfo section."""
     if elffile is None:
         try:
             elffile = _symbols.parse_elf(path)
