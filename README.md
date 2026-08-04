@@ -24,49 +24,49 @@ pip install pyelftools keystone-engine
 ## Usage
 
 ```bash
-swissfirm <firmware_dir> [options] -fo <function>    # Find function origin (exact)
-swissfirm <firmware_dir> [options] -fs <substring>   # Find function by substring
-swissfirm <firmware_dir> [options] -fb <hex>         # Search byte pattern
-swissfirm <firmware_dir> [options] -fm <arch:insn>   # Search by assembly
-swissfirm <firmware_dir> [options] -fn <lib.so>      # Resolve library dependencies
-swissfirm <firmware_dir> [options] -st               # Extract interesting strings
-swissfirm <firmware_dir> [options] -au               # Security hardening audit
-swissfirm <firmware_dir> [options] -im               # Flag dangerous imports
-swissfirm <firmware_dir> [options] -cr               # Find crypto constants
-swissfirm <firmware_dir> [options] -k                # Inventory kernel modules
-swissfirm <firmware_dir> [options] -ko <module.ko>   # Dump module symbols
-swissfirm <firmware_dir> [options] -i                # ELF inventory
+python3 -m swissfirm <firmware_dir> [options] -fo <function>     # Find function origin (exact)
+python3 -m swissfirm <firmware_dir> [options] -fs <substring>   # Find function by substring
+python3 -m swissfirm <firmware_dir> [options] -fb <hex>         # Search byte pattern
+python3 -m swissfirm <firmware_dir> [options] -fm <arch:insn>   # Search by assembly
+python3 -m swissfirm <firmware_dir> [options] -fn <lib.so>      # Resolve library dependencies
+python3 -m swissfirm <firmware_dir> [options] -st               # Extract interesting strings
+python3 -m swissfirm <firmware_dir> [options] -au               # Security hardening audit
+python3 -m swissfirm <firmware_dir> [options] -im               # Flag dangerous imports
+python3 -m swissfirm <firmware_dir> [options] -cr               # Find crypto constants
+python3 -m swissfirm <firmware_dir> [options] -k                # Inventory kernel modules
+python3 -m swissfirm <firmware_dir> [options] -ko <module.ko>   # Dump module symbols
+python3 -m swissfirm <firmware_dir> [options] -i                # ELF inventory
 ```
 
 ## Examples
 
 ```bash
 # Find which binary defines a function
-swissfirm ./fs -fo base64_encode
+python3 -m swissfirm ./fs -fo base64_encode
 
 # Search for functions containing "init"
-swissfirm ./fs -fs init
+python3 -m swissfirm ./fs -fs init
 
 # Find byte pattern deadbeef
-swissfirm ./fs -fb deadbeef
+python3 -m swissfirm ./fs -fb deadbeef
 
 # Search for x86 assembly pattern
-swissfirm ./fs -fm 'i386:mov eax, 1;push eax'
+python3 -m swissfirm ./fs -fm 'i386:mov eax, 1;push eax'
 
 # Resolve libc dependencies
-swissfirm ./fs -fn libc.so.6
+python3 -m swissfirm ./fs -fn libc.so.6
 
 # Audit all binaries for hardening features
-swissfirm ./fs -au
+python3 -m swissfirm ./fs -au
 
 # Generate JSON report
-swissfirm ./fs -au -im --format json -o report.json
+python3 -m swissfirm ./fs -au -im --format json -o report.json
 
 # Inventory kernel modules
-swissfirm ./fs -k
+python3 -m swissfirm ./fs -k
 
 # Dump symbols from a specific kernel module
-swissfirm ./fs -k -ko drivers/net/wireless/foo.ko
+python3 -m swissfirm ./fs -k -ko drivers/net/wireless/foo.ko
 ```
 
 ## Options
