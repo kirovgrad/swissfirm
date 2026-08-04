@@ -15,7 +15,7 @@ Firmware static analysis toolkit for reverse engineers. Analyzes ELF binaries ex
 - **Kernel Modules**: Handle compressed `.ko` files, extract modinfo and symbols
 - **ELF Inventory**: Census by architecture, type, bitness, and endianness
 
-## Installation
+## Dependencies
 
 ```bash
 pip install pyelftools keystone-engine
